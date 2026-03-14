@@ -4,6 +4,7 @@ import { NODE_ENV, PORT } from './config';
 import { errorsMiddleware } from './middlewares/errorsMiddleware';
 import { authRouter as authRouter } from './features/auth/auth.router';
 import { router as storeRouter } from './features/stores/store.router';
+import { router as productRouter } from './features/products/product.router';
 
 const app = express();
 
@@ -22,6 +23,10 @@ app.use(errorsMiddleware);
 
 //store
 app.use('/api/stores', storeRouter);
+
+//productoss
+app.use('/api/products', productRouter);
+
 
 if (NODE_ENV !== 'production') {
     app.listen(PORT, () => {

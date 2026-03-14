@@ -30,7 +30,7 @@ export const getStoreByIdController = async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     if (!id) {
-        throw Boom.badRequest('Store id is required');
+        throw Boom.badRequest('Store id is required!');
     }
 
     const store = await getStoreByIdService(id);
@@ -44,24 +44,24 @@ export const updateStoreStatusController = async (
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     if (!id) {
-        throw Boom.badRequest('Store id is required');
+        throw Boom.badRequest('Store id is required!');
     }
 
     if (!req.body) {
-        throw Boom.badRequest('Request body is required');
+        throw Boom.badRequest('Request body is required!');
     }
 
     const { isOpen } = req.body;
 
     if (typeof isOpen !== 'boolean') {
-        throw Boom.badRequest('isOpen must be a boolean');
+        throw Boom.badRequest('isOpen must be a boolean!');
     }
 
     const authUser = getUserFromRequest(req);
     const store = await getStoreByIdService(id);
 
     if (store.userId !== authUser.id) {
-        throw Boom.forbidden('You are not allowed to update this store');
+        throw Boom.forbidden('You are not allowed to update this store :(');
     }
 
     const updatedStore = await updateStoreStatusService(id, { isOpen });

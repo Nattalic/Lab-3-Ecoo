@@ -55,7 +55,7 @@ export const updateStoreStatusService = async (
     const result = await pool.query(query, [data.isOpen, storeId]);
 
     if (result.rows.length === 0) {
-        throw Boom.notFound('Store not found');
+        throw Boom.notFound('Store not found :(');
     }
 
     return result.rows[0];
