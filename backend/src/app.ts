@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
 });
 
 //Rutasss
-app.use('api/auth', authRouter);
+app.use('/api/auth', authRouter);
 
 // Error de middleware
 app.use(errorsMiddleware);
