@@ -98,10 +98,8 @@ export const createOrderService = async (
     }
 };
 
-export const getMyOrdersService = async (
-    consumerId: string
-): Promise<Order[]> => {
-    const query = `
+export const getMyOrdersService = async (consumerId: string): Promise<any[]> => {
+    const ordersQuery = `
     SELECT
       id,
       consumerid AS "consumerId",
@@ -114,10 +112,65 @@ export const getMyOrdersService = async (
     ORDER BY createdat DESC
   `;
 
-    const result = await pool.query(query, [consumerId]);
-    return result.rows;
-};
+    const ordersResult = await pool.query(ordersQuery, [consumerId]);
+    const orders = ordersResult.rows;
 
+    const fullOrders = [];
+
+    for (const order of orders) {
+        const storeQuery = `
+      SELECT
+        id,
+        name
+      FROM stores
+      WHERE id = $1
+    `;
+
+        const storeResult = await pool.query(storeQuery, [order.storeId]);
+        const store = storeResult.rows[0] || null;
+
+        const itemsQuery = `
+      SELECT
+        oi.id,
+        oi.orderid AS "orderId",
+        oi.productid AS "productId",
+        oi.quantity,
+        p.id AS "productRealId",
+        p.name AS "productName",
+        p.price AS "productPrice"
+      FROM order_items oi
+      INNER JOIN products p ON oi.productid = p.id
+      WHERE oi.orderid = $1
+    `;
+
+        const itemsResult = await pool.query(itemsQuery, [order.id]);
+
+        const orderItems = itemsResult.rows.map((item) => ({
+            id: item.id,
+            orderId: item.orderId,
+            productId: item.productId,
+            quantity: item.quantity,
+            products: {
+                id: item.productRealId,
+                name: item.productName,
+                price: item.productPrice,
+            },
+        }));
+
+        fullOrders.push({
+            ...order,
+            stores: store
+                ? {
+                    id: store.id,
+                    name: store.name,
+                }
+                : null,
+            order_items: orderItems,
+        });
+    }
+
+    return fullOrders;
+};
 export const getStoreOrdersService = async (userId: string): Promise<Order[]> => {
     const query = `
     SELECT
