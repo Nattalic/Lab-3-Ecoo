@@ -1,3 +1,4 @@
+//Verificar si el usuario está autenticado antes de dejar pasar la peticion
 import { Request, Response, NextFunction } from 'express';
 import Boom from '@hapi/boom';
 import { supabase } from '../config/supabase';
@@ -21,16 +22,21 @@ export const authMiddleware = async (
     res: Response,
     next: NextFunction
 ) => {
+    //verifica si hay autorizacion o no
     if (!req.headers.authorization) {
         throw Boom.unauthorized('Authorization header is missing');
     }
 
+    //si si hay saca token
+    //bearer 123bc
     const token = req.headers.authorization.split(' ')[1];
 
     if (!token) {
         throw Boom.unauthorized('Token is missing');
     }
 
+    //verifica el token con supabase
+    //supa. revisa si el token es valido y si el usuario existe
     const userResponse = await supabase.auth.getUser(token);
 
     if (userResponse.error) {
@@ -38,7 +44,7 @@ export const authMiddleware = async (
         //bearer -token- , desde headers o desde auth en postman
     }
 
-    //pase la peticion hacia mas adelante, hacia el controller
+    //si funciona el token guarda el usuario
     req.user = userResponse.data.user;
-    next();
+    next(); //pasa la peticion hacia mas adelante, hacia el controller (todo esta bien, siga)
 };

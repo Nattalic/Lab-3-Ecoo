@@ -1,3 +1,4 @@
+//donde se conecta todo
 import express from 'express';
 import cors from 'cors';
 import { NODE_ENV, PORT } from './config';

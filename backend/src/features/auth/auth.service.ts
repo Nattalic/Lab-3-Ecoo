@@ -36,7 +36,7 @@ export const createUserService = async (
       SELECT id
       FROM users
       WHERE email = $1
-    `;
+    `; //$1 aqui va un valor pero lo pondre despues  (primer valor del array) evita errores
 
         const existingUserResult = await client.query(existingUserQuery, [user.email]);
 
@@ -79,6 +79,7 @@ export const createUserService = async (
             user.role,
         ]);
 
+        //si el rol es store, crea la tienda
         if (user.role === UserRole.STORE) {
             const createStoreQuery = `
         INSERT INTO stores (name, isopen, userid)

@@ -1,3 +1,4 @@
+//logica
 import Boom from '@hapi/boom';
 import { pool } from '../../config/database';
 import {
@@ -7,9 +8,10 @@ import {
     OrderStatus,
 } from './order.types';
 
+//crear orden
 export const createOrderService = async (
-    consumerId: string,
-    data: CreateOrderDTO
+    consumerId: string, //el que compra
+    data: CreateOrderDTO //info de la orden
 ): Promise<Order> => {
     const client = await pool.connect();
 
@@ -20,6 +22,7 @@ export const createOrderService = async (
             throw Boom.badRequest('Order must contain at least one item!');
         }
 
+        //selecciona la tienda
         const storeQuery = `
       SELECT id
       FROM stores
@@ -27,33 +30,39 @@ export const createOrderService = async (
     `;
         const storeResult = await client.query(storeQuery, [data.storeId]);
 
+        //valida si existe o no
         if (storeResult.rows.length === 0) {
             throw Boom.notFound('Store not found');
         }
 
+        //valida que seleccione mas de 1 producto no 0
         for (const item of data.items) {
             if (item.quantity <= 0) {
                 throw Boom.badRequest('Quantity must be greater than 0!');
             }
 
+            //selecciona productos
             const productQuery = `
         SELECT id, storeid
         FROM products
         WHERE id = $1
       `;
             const productResult = await client.query(productQuery, [item.productId]);
-
+            
+            //valida si el producto seleccionado existe
             if (productResult.rows.length === 0) {
                 throw Boom.notFound(`Product not found: ${item.productId}`);
             }
 
             const product = productResult.rows[0];
 
+            //productos solo de una tienda
             if (product.storeid !== data.storeId) {
                 throw Boom.badRequest('All products must belong to the selected store!');
             }
         }
 
+        //crea la orden
         const createOrderQuery = `
       INSERT INTO orders (consumerid, storeid, deliveryid, createdat, status)
       VALUES ($1, $2, $3, NOW(), $4)
@@ -75,6 +84,7 @@ export const createOrderService = async (
 
         const order = orderResult.rows[0];
 
+        //guarda los productos de la orden en order_items
         for (const item of data.items) {
             const createOrderItemQuery = `
         INSERT INTO order_items (orderid, productid, quantity)
@@ -88,6 +98,7 @@ export const createOrderService = async (
             ]);
         }
 
+        //verificar que todo salio bien
         await client.query('COMMIT');
         return order;
     } catch (error) {
@@ -98,7 +109,9 @@ export const createOrderService = async (
     }
 };
 
+//trae mis ordenes (ordenes del consumidor)
 export const getMyOrdersService = async (consumerId: string): Promise<any[]> => {
+    //selecciona la orden
     const ordersQuery = `
     SELECT
       id,
@@ -117,6 +130,7 @@ export const getMyOrdersService = async (consumerId: string): Promise<any[]> => 
 
     const fullOrders = [];
 
+    //tienda de donde viene la orden
     for (const order of orders) {
         const storeQuery = `
       SELECT
@@ -129,6 +143,7 @@ export const getMyOrdersService = async (consumerId: string): Promise<any[]> => 
         const storeResult = await pool.query(storeQuery, [order.storeId]);
         const store = storeResult.rows[0] || null;
 
+        //items de la orden
         const itemsQuery = `
       SELECT
         oi.id,
@@ -172,7 +187,9 @@ export const getMyOrdersService = async (consumerId: string): Promise<any[]> => 
     return fullOrders;
 };
 
+//traer las ordenes de una tienda
 export const getStoreOrdersService = async (userId: string): Promise<any[]> => {
+    //selecciona orden de la tienda
     const ordersQuery = `
     SELECT
       o.id,
@@ -230,7 +247,9 @@ export const getStoreOrdersService = async (userId: string): Promise<any[]> => {
     return fullOrders;
 };
 
+//traer las ordenes disponibñes para el delivery
 export const getAvailableOrdersService = async (): Promise<any[]> => {
+    //selecciona la orden el consumidor
     const ordersQuery = `
     SELECT
       id,
@@ -262,6 +281,7 @@ export const getAvailableOrdersService = async (): Promise<any[]> => {
         const storeResult = await pool.query(storeQuery, [order.storeId]);
         const store = storeResult.rows[0] || null;
 
+        //que items tiene la orden
         const itemsQuery = `
       SELECT
         oi.id,
@@ -305,6 +325,7 @@ export const getAvailableOrdersService = async (): Promise<any[]> => {
     return fullOrders;
 };
 
+//trae las ordenes que acepto el delivery
 export const getAcceptedOrdersService = async (
     deliveryId: string
 ): Promise<any[]> => {
@@ -342,6 +363,7 @@ export const getAcceptedOrdersService = async (
         const storeResult = await pool.query(storeQuery, [order.storeId]);
         const store = storeResult.rows[0] || null;
 
+        //o ó p son alias, sirven para simplificar la consulta y evitar ambiguedades
         const itemsQuery = `
       SELECT
         oi.id,
@@ -361,10 +383,10 @@ export const getAcceptedOrdersService = async (
         const orderItems = itemsResult.rows.map((item) => ({
             id: item.id,
             orderId: item.orderId,
-            productId: item.productId,
+            productId: item.productId, //el id guardado en la orden
             quantity: item.quantity,
             products: {
-                id: item.productRealId,
+                id: item.productRealId, //el id del producto con toda su info
                 name: item.productName,
                 price: item.productPrice,
             },
@@ -385,7 +407,9 @@ export const getAcceptedOrdersService = async (
     return fullOrders;
 };
 
+//busca orden por su id 
 export const getOrderByIdService = async (orderId: string): Promise<Order> => {
+    //Selecciona orden por su id
     const query = `
     SELECT
       id,
@@ -401,12 +425,13 @@ export const getOrderByIdService = async (orderId: string): Promise<Order> => {
     const result = await pool.query(query, [orderId]);
 
     if (result.rows.length === 0) {
-        throw Boom.notFound('Order not found :(');
+        throw Boom.notFound('Order not found :('); //si no encuentra el id, muestra esto
     }
 
     return result.rows[0];
 };
 
+//trae solo los items de una orden
 export const getOrderItemsService = async (
     orderId: string
 ): Promise<OrderItem[]> => {
@@ -424,16 +449,19 @@ export const getOrderItemsService = async (
     return result.rows;
 };
 
+//para que el delivery acepte la orden
 export const acceptOrderService = async (
     orderId: string,
     deliveryId: string
 ): Promise<Order> => {
     const order = await getOrderByIdService(orderId);
 
+    //validar que la orden siga disponible
     if (order.status !== OrderStatus.PENDING || order.deliveryId !== null) {
         throw Boom.badRequest('Order is no longer available :(');
     }
 
+    //se cambia el estado de pending a accepted
     const query = `
     UPDATE orders
     SET deliveryid = $1, status = $2
@@ -456,6 +484,7 @@ export const acceptOrderService = async (
     return result.rows[0];
 };
 
+//para que el delivery rechace la orden
 export const declineOrderService = async (orderId: string): Promise<Order> => {
     const order = await getOrderByIdService(orderId);
 
@@ -463,6 +492,7 @@ export const declineOrderService = async (orderId: string): Promise<Order> => {
         throw Boom.badRequest('Order is no longer available :(');
     }
 
+    //actualiza el estado
     const query = `
     UPDATE orders
     SET status = $1

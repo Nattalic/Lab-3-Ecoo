@@ -6,6 +6,11 @@ export interface Store {
 }
 
 //crear tienda
+
+//DTO: para crear un producto solo necesito esto 
+//Son los datos que el usuario manda
+//datos que se esperan recibir
+//sirve para organizar codigo y evitar que falte info o manden cosas raras
 export interface CreateStoreDTO {
     name: string;
     userId: string;

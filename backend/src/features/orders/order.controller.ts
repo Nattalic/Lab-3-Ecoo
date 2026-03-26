@@ -1,3 +1,7 @@
+//respuesta (request)
+//intermediario entre el frontend y el service 
+//El controller recibe la request, valida datos básicos, llama al service y devuelve la respuesta
+//solo  maneja la request y el response
 import { Request, Response } from 'express';
 import Boom from '@hapi/boom';
 import {
